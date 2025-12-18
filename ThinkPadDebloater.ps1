@@ -226,6 +226,39 @@ function Optimize-Visuals {
     Write-Log "Visual effects set to 'Best Performance' and Power Plan updated." "Green"
 }
 
+function Optimize-Extras {
+    Write-Log "Applying Final Tweaks (Hibernation, GameDVR, Scheduled Tasks)..." "Yellow"
+
+    # 1. Disable Hibernation
+    # Why? Saves disk space (approx RAM size) and forces 'Clean Boot' which is better for OBD2 Driver stability.
+    powercfg -h off
+    Write-Log "Hibernation Disabled (Frees disk space, ensures clean driver loading)." "Green"
+
+    # 2. Disable GameDVR / GameBar (Registry)
+    $regGame = "HKCU:\System\GameConfigStore"
+    $regGameMode = "HKCU:\Software\Microsoft\GameBar"
+    
+    if (!(Test-Path $regGame)) { New-Item -Path $regGame -Force | Out-Null }
+    if (!(Test-Path $regGameMode)) { New-Item -Path $regGameMode -Force | Out-Null }
+    
+    Set-ItemProperty -Path $regGame -Name "GameDVR_Enabled" -Value 0 -Force | Out-Null
+    Set-ItemProperty -Path $regGameMode -Name "AllowAutoGameMode" -Value 0 -Force | Out-Null
+    Write-Log "GameDVR and GameBar Registry keys disabled." "Green"
+
+    # 3. Disable Scheduled Telemetry Tasks
+    $tasks = @(
+        "\Microsoft\Windows\Customer Experience Improvement Program\Consolidator"
+        "\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip"
+        "\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser"
+        "\Microsoft\Windows\Application Experience\ProgramDataUpdater"
+    )
+    
+    foreach ($task in $tasks) {
+        Get-ScheduledTask -Taskpath $task -ErrorAction SilentlyContinue | Disable-ScheduledTask -ErrorAction SilentlyContinue | Out-Null
+    }
+    Write-Log "Scheduled Telemetry Tasks disabled." "Green"
+}
+
 function Test-Tools {
     Write-Log "Verifying Critical Tools..." "Cyan"
     
@@ -286,8 +319,9 @@ function Show-Menu {
     Write-Host "2. Remove ALL Bloatware (Mail, Xbox, News, Weather, etc.)"
     Write-Host "3. Disable Telemetry & Unnecessary Services"
     Write-Host "4. Optimize Visual Effects (Performance Mode)"
-    Write-Host "5. RUN ALL (Steps 1-4)"
+    Write-Host "5. RUN ALL (Steps 1-4 + Extras)"
     Write-Host "6. Verify Critical Tools (ADB/Chrome)"
+    Write-Host "7. Apply Final Extras (Hibernation/Tasks)"
     Write-Host "Q. Quit"
     Write-Host "========================================" -ForegroundColor Cyan
 }
@@ -309,10 +343,12 @@ do {
             Remove-Bloatware
             Disable-TelemetryAndServices
             Optimize-Visuals
+            Optimize-Extras
             Write-Log "All tasks completed. Network/WiFi drivers are untouched." "Green"
             Start-Sleep -Seconds 2
         }
         '6' { Test-Tools; pause }
+        '7' { Optimize-Extras; pause }
         'Q' { exit }
         'q' { exit }
         default { Write-Warning "Invalid Option" }
