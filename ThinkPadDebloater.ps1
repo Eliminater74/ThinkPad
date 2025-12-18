@@ -257,6 +257,36 @@ function Optimize-Extras {
         Get-ScheduledTask -Taskpath $task -ErrorAction SilentlyContinue | Disable-ScheduledTask -ErrorAction SilentlyContinue | Out-Null
     }
     Write-Log "Scheduled Telemetry Tasks disabled." "Green"
+
+    # 4. Disable "News and Interests" (Taskbar Widget) & "Meet Now"
+    $regFeeds = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds"
+    if (!(Test-Path $regFeeds)) { New-Item -Path $regFeeds -Force | Out-Null }
+    Set-ItemProperty -Path $regFeeds -Name "EnableFeeds" -Value 0 -Force | Out-Null
+    Write-Log "News and Interests (Taskbar Widget) disabled." "Green"
+
+    # 5. Disable Windows Tips & Suggestions (Soft Landing)
+    $regContent = "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+    if (!(Test-Path $regContent)) { New-Item -Path $regContent -Force | Out-Null }
+    Set-ItemProperty -Path $regContent -Name "SubscribedContent-338389Enabled" -Value 0 -Force | Out-Null # Tips
+    Set-ItemProperty -Path $regContent -Name "SubscribedContent-338388Enabled" -Value 0 -Force | Out-Null # Suggestions
+    Set-ItemProperty -Path $regContent -Name "SoftLandingEnabled" -Value 0 -Force | Out-Null
+    Write-Log "Windows Tips and Suggestions disabled." "Green"
+}
+
+function Remove-OneDrive {
+    Write-Log "Uninstalling OneDrive..." "Yellow"
+    $onedrive = "$env:SYSTEMROOT\SysWOW64\OneDriveSetup.exe"
+    if (!(Test-Path $onedrive)) {
+        $onedrive = "$env:SYSTEMROOT\System32\OneDriveSetup.exe"
+    }
+
+    if (Test-Path $onedrive) {
+        Start-Process $onedrive -ArgumentList "/uninstall" -Wait -ErrorAction SilentlyContinue
+        Write-Log "OneDrive Uninstalled." "Green"
+    }
+    else {
+        Write-Log "OneDrive executable not found (Already gone?)." "DarkGray"
+    }
 }
 
 function Test-Tools {
@@ -321,7 +351,7 @@ function Show-Menu {
     Write-Host "4. Optimize Visual Effects (Performance Mode)"
     Write-Host "5. RUN ALL (Steps 1-4 + Extras)"
     Write-Host "6. Verify Critical Tools (ADB/Chrome)"
-    Write-Host "7. Apply Final Extras (Hibernation/Tasks)"
+    Write-Host "7. Apply Final Extras (Hibernation, OneDrive, Tweaks)"
     Write-Host "Q. Quit"
     Write-Host "========================================" -ForegroundColor Cyan
 }
@@ -344,11 +374,12 @@ do {
             Disable-TelemetryAndServices
             Optimize-Visuals
             Optimize-Extras
+            Remove-OneDrive
             Write-Log "All tasks completed. Network/WiFi drivers are untouched." "Green"
             Start-Sleep -Seconds 2
         }
         '6' { Test-Tools; pause }
-        '7' { Optimize-Extras; pause }
+        '7' { Optimize-Extras; Remove-OneDrive; pause }
         'Q' { exit }
         'q' { exit }
         default { Write-Warning "Invalid Option" }
