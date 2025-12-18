@@ -1,0 +1,21 @@
+# OS junk
+[Dd]esktop.ini
+Thumbs.db
+$RECYCLE.BIN/
+
+# Editor/IDE
+.history/
+.vscode/
+*.swp
+*.swo
+*~
+.idea/
+.vs/
+
+# PowerShell / Scripts
+*.log
+*.tmp
+*.bak
+
+# User specific
+.gemini/
