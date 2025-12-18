@@ -1,6 +1,6 @@
 # ThinkPad 11E Debloater (Forscan Edition)
 
-![Views](https://komarev.com/ghpvc/?username=YourUsername&label=Views&color=blue&style=flat)
+![Views](https://komarev.com/ghpvc/?username=Eliminater74&label=Views&color=blue&style=flat)
 
 A heavy-duty PowerShell debloater script specifically tuned for low-power laptops (like the **ThinkPad 11E** with Pentium/Celeron CPUs) dedicated to automotive diagnostics (**Forscan**) and Android debugging (**ADB**).
 
