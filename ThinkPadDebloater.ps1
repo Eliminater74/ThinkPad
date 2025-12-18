@@ -131,8 +131,17 @@ function Remove-Bloatware {
 
         # 2. Try to remove Provisioned Package (The "Nuclear" Option for System Apps)
         try {
-            Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $app | Remove-AppxProvisionedPackage -Online -ErrorAction Stop | Out-Null
-            Write-Host " [REMOVED PROVISIONED]" -ForegroundColor Green
+            # Use -like wildcard on PackageName because DisplayName might be "Microsoft Store" vs "Microsoft.WindowsStore"
+            $prov = Get-AppxProvisionedPackage -Online | Where-Object { $_.PackageName -like "*$app*" }
+            
+            if ($prov) {
+                $prov | Remove-AppxProvisionedPackage -Online -ErrorAction Stop | Out-Null
+                Write-Host " [REMOVED PROVISIONED]" -ForegroundColor Green
+            }
+            else {
+                # Only log this for debugging if user asked, otherwise it spams
+                # Write-Host " [PROV NOT FOUND]" -ForegroundColor DarkGray
+            }
         }
         catch {
             # Only complain if BOTH failed and it wasn't just "not found"
