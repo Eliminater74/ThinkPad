@@ -20,13 +20,19 @@ function Write-Log {
 function Assert-Admin {
     $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Write-Warning "This script requires Administrator privileges!"
-        Start-Sleep -Seconds 3
+        Clear-Host
+        Write-Warning "================================================================"
+        Write-Warning " ERROR: SCRIPT NOT RUNNING AS ADMINISTRATOR"
+        Write-Warning "================================================================"
+        Write-Warning " You MUST right-click and select 'Run as Administrator'."
+        Write-Warning " Or use the 'RunDebloater.bat' file included."
+        Write-Warning "================================================================"
+        Start-Sleep -Seconds 10
         exit
     }
 }
 
-function Create-RestorePoint {
+function New-SysRestorePoint {
     param([string]$Description = "ThinkPad Debloat Pre-Flight")
     Write-Log "Creating System Restore Point: $Description" "Cyan"
     try {
@@ -53,6 +59,12 @@ function Remove-Bloatware {
     # but usually easier to just kill the consumer apps.
     
     $AppList = @(
+        # Core System Apps (User requested "Kill it all")
+        "Microsoft.WindowsStore"     # Microsoft Store
+        "Microsoft.StorePurchaseApp" # Store Backend
+        "Microsoft.Services.Store.Engagement"
+        "Microsoft.DesktopAppInstaller" # App Installer (winget might break, but user requested)
+
         # Communications
         "microsoft.windowscommunicationsapps" # Mail & Calendar
         "Microsoft.SkypeApp"
@@ -97,9 +109,24 @@ function Remove-Bloatware {
     )
 
     foreach ($app in $AppList) {
-        Get-AppxPackage -Name $app -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
-        Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $app | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
-        Write-Host "Removed: $app" -ForegroundColor DarkGray
+        Write-Host "Processing: $app ..." -NoNewline
+        try {
+            $package = Get-AppxPackage -Name $app -AllUsers -ErrorAction Stop
+            if ($package) {
+                $package | Remove-AppxPackage -AllUsers -ErrorAction Stop
+                Write-Host " [REMOVED]" -ForegroundColor Green
+            }
+            else {
+                Write-Host " [NOT FOUND / ALREADY GONE]" -ForegroundColor DarkGray
+            }
+            
+            # Also try to remove provisioned package (prevent it coming back for new users)
+            Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $app | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
+        }
+        catch {
+            # Catch specific errors like "Access Denied" or "System App" and just log them quietly
+            Write-Host " [SKIPPED - PROTECTED/ERROR]" -ForegroundColor Yellow
+        }
     }
     Write-Log "Bloatware removal complete." "Green"
 }
@@ -172,7 +199,7 @@ function Optimize-Visuals {
     Write-Log "Visual effects set to 'Best Performance' and Power Plan updated." "Green"
 }
 
-function Verify-Tools {
+function Test-Tools {
     Write-Log "Verifying Critical Tools..." "Cyan"
     
     # Check for ADB
@@ -236,21 +263,21 @@ Assert-Admin
 
 do {
     Show-Menu
-    $input = Read-Host "Select an option"
-    switch ($input) {
-        '1' { Create-RestorePoint }
+    $userChoice = Read-Host "Select an option"
+    switch ($userChoice) {
+        '1' { New-SysRestorePoint }
         '2' { Remove-Bloatware }
         '3' { Disable-TelemetryAndServices }
         '4' { Optimize-Visuals }
         '5' {
-            Create-RestorePoint
+            New-SysRestorePoint
             Remove-Bloatware
             Disable-TelemetryAndServices
             Optimize-Visuals
             Write-Log "All tasks completed. Network/WiFi drivers are untouched." "Green"
             Start-Sleep -Seconds 2
         }
-        '6' { Verify-Tools; pause }
+        '6' { Test-Tools; pause }
         'Q' { exit }
         'q' { exit }
         default { Write-Warning "Invalid Option" }
