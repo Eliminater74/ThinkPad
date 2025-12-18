@@ -167,7 +167,12 @@ function Disable-TelemetryAndServices {
         "SysMain",                   # Superfetch (Preloads apps into RAM, disabling frees memory)
         "XblAuthManager",            # Xbox Live Auth Manager
         "XblGameSave",               # Xbox Live Game Save
-        "XboxNetApiSvc"              # Xbox Live Networking Service
+        "XboxNetApiSvc",             # Xbox Live Networking Service
+        "Spooler",                   # Print Spooler (Unlikely needed for car tuning)
+        "Fax",                       # Fax Service
+        "RetailDemo",                # Windows Retail Demo Service
+        "SCardSvr",                  # Smart Card Service
+        "RemoteRegistry"             # Remote Registry (Security/Performance)
     )
 
     foreach ($svc in $Services) {
