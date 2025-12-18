@@ -115,6 +115,7 @@ function Disable-TelemetryAndServices {
         "lfsvc",                     # Geolocation Service
         "WerSvc",                    # Windows Error Reporting Service
         "WSearch",                   # Windows Search (High CPU usage indexer)
+        "SysMain",                   # Superfetch (Preloads apps into RAM, disabling frees memory)
         "XblAuthManager",            # Xbox Live Auth Manager
         "XblGameSave",               # Xbox Live Game Save
         "XboxNetApiSvc"              # Xbox Live Networking Service
@@ -141,6 +142,9 @@ function Disable-TelemetryAndServices {
         @{Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"; Name = "DisableWebSearch"; Value = 1; Type = "DWord" }
         # Disable Location
         @{Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors"; Name = "DisableLocation"; Value = 1; Type = "DWord" }
+        # Disable Background Apps (Global Toggle)
+        @{Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications"; Name = "GlobalUserDisabled"; Value = 1; Type = "DWord" }
+        @{Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search"; Name = "BackgroundAppGlobalToggle"; Value = 0; Type = "DWord" }
     )
 
     foreach ($tweak in $Tweaks) {
@@ -161,7 +165,11 @@ function Optimize-Visuals {
     if (!(Test-Path $visualPath)) { New-Item -Path $visualPath -Force | Out-Null }
     Set-ItemProperty -Path $visualPath -Name "VisualFXSetting" -Value 2
 
-    Write-Log "Visual effects set to 'Best Performance' (Requires Log off/on to fully take effect)." "Green"
+    # High Performance Power Plan
+    Write-Log "Setting Power Plan to High Performance..." "Yellow"
+    powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+    
+    Write-Log "Visual effects set to 'Best Performance' and Power Plan updated." "Green"
 }
 
 function Verify-Tools {
