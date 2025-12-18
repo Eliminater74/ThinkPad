@@ -110,6 +110,10 @@ function Remove-Bloatware {
 
     foreach ($app in $AppList) {
         Write-Host "Processing: $app ..." -NoNewline
+        
+        # Try to kill the process if it's running
+        Get-Process -Name $app -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        
         try {
             $package = Get-AppxPackage -Name $app -AllUsers -ErrorAction Stop
             if ($package) {
@@ -124,8 +128,9 @@ function Remove-Bloatware {
             Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $app | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
         }
         catch {
-            # Catch specific errors like "Access Denied" or "System App" and just log them quietly
-            Write-Host " [SKIPPED - PROTECTED/ERROR]" -ForegroundColor Yellow
+            # Catch specific errors and log them so we know WHY it failed
+            Write-Host " [FAILED]" -ForegroundColor Red
+            Write-Host "    Reason: $($_.Exception.Message)" -ForegroundColor DarkGray
         }
     }
     Write-Log "Bloatware removal complete." "Green"
