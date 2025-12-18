@@ -260,6 +260,14 @@ function Test-Tools {
     catch {
         Write-Log "Could not test connection." "Yellow"
     }
+
+    # Bluetooth Check
+    if (Get-Service "bthserv" -ErrorAction SilentlyContinue | Where-Object Status -eq 'Running') {
+        Write-Log "Bluetooth Service: RUNNING (OK)" "Green"
+    }
+    else {
+        Write-Log "Bluetooth Service: STOPPED (Enable if needed)" "Yellow"
+    }
 }
 
 # --- MENU SYSTEM ---
