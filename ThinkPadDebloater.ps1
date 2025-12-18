@@ -114,24 +114,32 @@ function Remove-Bloatware {
         # Try to kill the process if it's running
         Get-Process -Name $app -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
         
+        # 1. Try to remove for Current/All Users
         try {
             $package = Get-AppxPackage -Name $app -AllUsers -ErrorAction Stop
             if ($package) {
                 $package | Remove-AppxPackage -AllUsers -ErrorAction Stop
-                Write-Host " [REMOVED]" -ForegroundColor Green
+                Write-Host " [REMOVED USER APP]" -ForegroundColor Green
             }
             else {
-                Write-Host " [NOT FOUND / ALREADY GONE]" -ForegroundColor DarkGray
+                Write-Host " [USER APP NOT FOUND]" -ForegroundColor DarkGray -NoNewline
             }
-            
-            # Also try to remove provisioned package (prevent it coming back for new users)
-            Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $app | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue | Out-Null
         }
         catch {
-            # Catch specific errors and log them so we know WHY it failed
-            Write-Host " [FAILED]" -ForegroundColor Red
-            Write-Host "    Reason: $($_.Exception.Message)" -ForegroundColor DarkGray
+            Write-Host " [USER REMOVAL FAILED]" -ForegroundColor Yellow -NoNewline
         }
+
+        # 2. Try to remove Provisioned Package (The "Nuclear" Option for System Apps)
+        try {
+            Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $app | Remove-AppxProvisionedPackage -Online -ErrorAction Stop | Out-Null
+            Write-Host " [REMOVED PROVISIONED]" -ForegroundColor Green
+        }
+        catch {
+            # Only complain if BOTH failed and it wasn't just "not found"
+            # We don't need to log this failure heavily if the user app is already gone
+        }
+        
+        Write-Host "" # Newline after processing line
     }
     Write-Log "Bloatware removal complete." "Green"
 }
